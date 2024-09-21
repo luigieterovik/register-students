@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Lista de Alunos</title>
+    <link th:href="@{/novoAlunoStyles.css}" rel="stylesheet" />
+</head>
+<body>
+    <h1>Cadastrar Novo Aluno</h1>
+    <form id="alunoForm" th:action="@{/aluno/adicionar}" th:object="${aluno}" method="post">
+        <div>
+            <label for="nome">Nome:</label>
+            <input type="text" id="nome" th:field="*{nome}" />
+        </div>
+        <span id="nomeError" style="color: red; display: none">O nome é obrigatório.</span>
+
+        <div>
+            <label for="serie">Série:</label>
+            <input type="text" id="serie" th:field="*{serie}" />
+        </div>
+        <span id="serieError" style="color: red; display: none">A série é obrigatória.</span>
+
+        <div>
+            <label for="dataNascimento">Data de nascimento:</label>
+            <input type="text" id="dataNascimento" placeholder="DD/MM/AAAA" th:field="*{dataNascimento}" />
+        </div>
+        <span id="dataNascimentoError" style="color: red; display: none">Data inválida. Use o formato DD/MM/AAAA.</span>
+
+        <button type="submit">Salvar</button>
+    </form>
+
+    <script>
+        document.getElementById("alunoForm").addEventListener("submit", function (event) {
+            let formValid = true;
+
+            const nome = document.getElementById("nome").value.trim();
+            if (nome === "") {
+                formValid = false;
+                document.getElementById("nomeError").style.display = "inline";
+            } else {
+                document.getElementById("nomeError").style.display = "none";
+            }
+
+            const serie = document.getElementById("serie").value.trim();
+            if (serie === "") {
+                formValid = false;
+                document.getElementById("serieError").style.display = "inline";
+            } else {
+                document.getElementById("serieError").style.display = "none";
+            }
+
+            const dataNascimento = document.getElementById("dataNascimento").value.trim();
+            const dataRegex = /^(0[1-9]|[12][0-9]|3[01])\/(0[1-9]|1[0-2])\/\d{4}$/;
+            if (!dataRegex.test(dataNascimento)) {
+                formValid = false;
+                document.getElementById("dataNascimentoError").style.display = "inline";
+            } else {
+                document.getElementById("dataNascimentoError").style.display = "none";
+            }
+
+            if (!formValid) {
+                event.preventDefault(); // Só impede o envio se o formulário não for válido
+            }
+        });
+    </script>
+</body>
+</html>

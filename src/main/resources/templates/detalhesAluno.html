@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org">
+<head>
+            <link th:href="@{/detalhesAlunoStyles.css}" rel="stylesheet" />
+    <title>Detalhes do Aluno</title>
+    <script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const id = window.location.pathname.split("/")[2];
+
+        function atualizarAnalises() {
+            fetch(`/analise/listarPorAluno/${id}`)
+                .then(response => response.json())
+                .then(analises => {
+                    const analisesContainer = document.getElementById("analises-container");
+                    const analisesList = document.getElementById("analises-list");
+
+                    if (analises.length === 0) {
+                        analisesContainer.innerHTML = '<p>Não há nenhuma avaliação até o momento.</p>';
+                        analisesList.innerHTML = '';
+                    } else {
+                        analisesList.innerHTML = analises.map(analise => `
+                            <li>
+                                <div class="data-div">
+                                    <p><strong>Nota:</strong> ${analise.nota}</p>
+                                    <p><strong>Análise:</strong> ${analise.analise}</p>
+                                </div>
+                                <div class="acoes">
+                                    <button class="btn-atualizar" onclick="abrirModal(${analise.id}, '${analise.nota}', '${analise.analise}')">Atualizar</button>
+                                    <button class="btn-deletar" onclick="deletarAnalise(${analise.id})">Deletar</button>
+                                </div>
+                            </li>
+                        `).join('');
+                    }
+                });
+        }
+
+        // Função de validação de formulário
+        function validarFormulario(nota, analise) {
+            if (nota < 0 || nota > 10) {
+                alert("A nota deve ser entre 0 e 10.");
+                return false;
+            }
+
+            if (analise.trim() === "") {
+                alert("A análise não pode estar vazia.");
+                return false;
+            }
+
+            return true;
+        }
+
+        fetch(`/aluno/pesquisar/${id}`)
+            .then(response => response.json())
+            .then(aluno => {
+                document.querySelector("h1").textContent = aluno.nome;
+                document.querySelector("#serie").textContent = aluno.serie;
+                document.querySelector("#dataNascimento").textContent = aluno.dataNascimento;
+            });
+
+        atualizarAnalises();
+
+        // Validação ao adicionar nova análise
+        document.getElementById("nova-analise-form").addEventListener("submit", function (event) {
+            event.preventDefault();
+
+            const nota = document.getElementById("nota").value;
+            const analise = document.getElementById("analise").value;
+
+            // Validação antes de enviar
+            if (!validarFormulario(nota, analise)) {
+                return;
+            }
+
+            const novaAnalise = {
+                alunoId: id,
+                analise: analise,
+                nota: nota
+            };
+
+            fetch(`/analise/adicionar`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(novaAnalise)
+            }).then(() => {
+                atualizarAnalises();
+                document.getElementById("nova-analise-form").reset(); // Limpa o formulário
+            });
+        });
+
+        window.abrirModal = function(id, nota, analise) {
+            document.getElementById('modal-analise-id').value = id;
+            document.getElementById('modal-nota').value = nota;
+            document.getElementById('modal-analise').value = analise;
+            document.getElementById('addReviewModal').style.display = "block";
+        };
+
+        window.fecharModal = function() {
+            document.getElementById('addReviewModal').style.display = "none";
+        };
+
+        // Validação ao atualizar análise
+        document.getElementById('addReviewForm').addEventListener('submit', function (event) {
+            event.preventDefault();
+
+            const nota = document.getElementById('modal-nota').value;
+            const analise = document.getElementById('modal-analise').value;
+
+            // Validação antes de enviar
+            if (!validarFormulario(nota, analise)) {
+                return;
+            }
+
+            const analiseAtualizada = {
+                id: document.getElementById('modal-analise-id').value,
+                nota: nota,
+                analise: analise,
+                alunoId: id
+            };
+
+            fetch(`/analise/atualizar/${analiseAtualizada.id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(analiseAtualizada)
+            }).then(() => {
+                fecharModal();
+                atualizarAnalises();
+            });
+        });
+
+        window.deletarAnalise = function(id) {
+            if (confirm("Você tem certeza que deseja deletar esta análise?")) {
+                fetch(`/analise/deletar/${id}`, {
+                    method: 'DELETE',
+                }).then(() => {
+                    atualizarAnalises();
+                });
+            }
+        };
+
+        document.getElementById('addReviewModal').addEventListener('click', function (event) {
+            if (event.target == this) {
+                fecharModal();
+            }
+        });
+    });
+</script>
+
+</head>
+<body>
+    <h1 th:text="${aluno.nome}">Nome do Aluno</h1>
+    <p><strong>Série:</strong> <span th:text="${aluno.serie}" id="serie"></span></p>
+    <p><strong>Gênero:</strong> <span th:text="${aluno.dataNascimento}" id="dataNascimento"></span></p>
+
+    <h2>Avaliações</h2>
+    <div id="analises-container">
+    </div>
+    <ul id="analises-list">
+    </ul>
+
+    <h2>Adicionar Nova Análise</h2>
+    <form id="nova-analise-form">
+        <div>
+            <label for="nota">Nota:</label>
+            <input type="number" id="nota" min="0" max="10" />
+        </div>
+        <div>
+            <label for="analise">Análise:</label>
+            <textarea id="analise"></textarea>
+        </div>
+        <button type="submit">Adicionar Análise</button>
+    </form>
+
+    <a href="/">Voltar para a lista de alunos</a>  
+    
+    <div id="addReviewModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="fecharModal()">&times;</span>
+            <h1>Atualizar Análise</h1>
+            <form id="addReviewForm">
+                <input type="hidden" id="modal-analise-id" name="id" value="" />
+                <label for="modal-nota">Nota:</label>
+                <input type="number" id="modal-nota" name="nota" min="0" max="10" required="required" />
+                <label for="modal-analise">Análise:</label>
+                <textarea id="modal-analise" name="analise" required="required"></textarea>
+                <button type="submit">Atualizar Análise</button>
+                <button type="button" onclick="fecharModal()">Cancelar</button>
+            </form>
+        </div>
+    </div>
+</body>
+</html>

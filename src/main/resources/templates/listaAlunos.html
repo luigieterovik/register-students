@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <link th:href="@{/listaAlunosStyles.css}" rel="stylesheet" />
+    <title>Lista de Alunos</title>
+    <script>
+      function abrirModal(id) {
+        const linha = document.querySelector(`tr[data-id="${id}"]`);
+        if (linha) {
+          const cells = linha.querySelectorAll("td");
+          document.getElementById("alunoId").value = cells[0].textContent;
+          document.getElementById("nome").value = cells[1].textContent.trim();
+          document.getElementById("serie").value = cells[2].textContent;
+          document.getElementById("dataNascimento").value =
+            cells[3].textContent;
+          document.getElementById("editModal").style.display = "block";
+        } else {
+          console.error("Linha não encontrada para o ID:", id);
+        }
+      }
+
+      function fecharModal() {
+        document.getElementById("editModal").style.display = "none";
+      }
+      
+      
+function deletarAluno(id) {
+    if (confirm('Tem certeza que deseja deletar este aluno?')) {
+        fetch(`/aluno/deletar/${id}`, {
+            method: 'DELETE',
+        })
+        .then(response => {
+            if (response.ok) {
+                console.log('Aluno deletado com sucesso.');
+                fetch('/aluno/listar')
+                    .then(response => response.json())
+                    .then(alunos => {
+                        const tbody = document.querySelector("tbody");
+                        tbody.innerHTML = "";
+                        alunos.forEach(aluno => {
+                            tbody.innerHTML += `
+                                <tr data-id="${aluno.id}">
+                                    <td>${aluno.id}</td>
+                                    <td><a href="/detalhes/${aluno.id}">${aluno.nome}</a></td>
+                                    <td>${aluno.serie}</td>
+                                    <td>${aluno.dataNascimento}</td>
+                                    <td>
+                                        <button class="btn-atualizar" onclick="abrirModal(${aluno.id})">Atualizar</button>
+                                        <button class="btn-deletar" onclick="deletarAluno(${aluno.id})">Deletar</button>
+                                    </td>
+                                </tr>
+                            `;
+                        });
+                    });
+            } else {
+                console.error('Erro ao deletar aluno.');
+            }
+        })
+        .catch(error => {
+            console.error('Erro ao realizar a requisição de deleção:', error);
+        });
+    }
+}
+
+function atualizarAluno() {
+    const id = document.getElementById('alunoId').value;
+    const nome = document.getElementById('nome').value;
+    const serie = document.getElementById('serie').value;
+    const dataNascimento = document.getElementById('dataNascimento').value;
+
+    fetch(`/aluno/atualizar/${id}`, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            id: id,
+            nome: nome,
+            serie: serie,
+            dataNascimento: dataNascimento
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        console.log('Aluno atualizado:', data);
+        fecharModal();
+        fetch('/aluno/listar')
+            .then(response => response.json())
+            .then(alunos => {
+                const tbody = document.querySelector("tbody");
+                tbody.innerHTML = "";
+                alunos.forEach(aluno => {
+                    tbody.innerHTML += `
+                        <tr data-id="${aluno.id}">
+                            <td>${aluno.id}</td>
+                            <td><a href="/detalhes/${aluno.id}">${aluno.nome}</a></td>
+                            <td>${aluno.serie}</td>
+                            <td>${aluno.dataNascimento}</td>
+                            <td>
+                                <button class="btn-atualizar" onclick="abrirModal(${aluno.id})">Atualizar</button>
+                                <button class="btn-deletar" onclick="deletarAluno(${aluno.id})">Deletar</button>
+                            </td>
+                        </tr>
+                    `;
+                });
+            });
+    })
+    .catch(error => {
+        console.error('Erro ao atualizar aluno:', error);
+    });
+}
+
+document.addEventListener("DOMContentLoaded", function () {
+    fetch('/aluno/listar')
+        .then(response => response.json())
+        .then(alunos => {
+            const tbody = document.querySelector("tbody");
+            tbody.innerHTML = "";
+            alunos.forEach(aluno => {
+                tbody.innerHTML += `
+                    <tr data-id="${aluno.id}">
+                        <td>${aluno.id}</td>
+                        <td><a href="/detalhes/${aluno.id}">${aluno.nome}</a></td>
+                        <td>${aluno.serie}</td>
+                        <td>${aluno.dataNascimento}</td>
+                        <td>
+                            <button class="btn-atualizar" onclick="abrirModal(${aluno.id})">Atualizar</button>
+                            <button class="btn-deletar" onclick="deletarAluno(${aluno.id})">Deletar</button>
+                        </td>
+                    </tr>
+                `;
+            });
+        });
+
+    document.getElementById('editModal').addEventListener('click', function (event) {
+        if (event.target == this) {
+            fecharModal();
+        }
+    });
+
+    document.getElementById('editForm').addEventListener('submit', function (event) {
+        event.preventDefault();
+        atualizarAluno();
+    });
+});
+    </script>
+  </head>
+  <body>
+    <h1>Lista de Alunos</h1>
+
+    <p>Para detalhes e avaliações de um aluno, clique em seu nome.</p>
+
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Nome</th>
+          <th>Série</th>
+          <th>Data de Nascimento</th>
+          <th>Operações</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+    <br />
+    <a href="/novoAluno">Adicionar Novo aluno</a>
+
+    <div id="editModal" class="modal">
+      <div class="modal-content">
+        <span class="close" onclick="fecharModal()">&times;</span>
+        <h1>Editar aluno</h1>
+        <form id="editForm">
+          <input type="hidden" id="alunoId" name="id" />
+          <label for="nome">Nome:</label>
+          <input type="text" id="nome" name="nome" required="required" />
+          <label for="serie">Série:</label>
+          <textarea id="serie" name="serie" required="required"></textarea>
+          <label for="dataNascimento">Data de Nascimento:</label>
+          <input
+            type="text"
+            id="dataNascimento"
+            name="dataNascimento"
+            required="required"
+          />
+          <button type="submit">Salvar Alterações</button>
+          <button type="button" onclick="fecharModal()">Cancelar</button>
+        </form>
+      </div>
+    </div>
+
+  </body>
+</html>
